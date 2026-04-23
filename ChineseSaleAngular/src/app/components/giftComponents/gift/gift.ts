@@ -1,0 +1,226 @@
+import { Component, effect, inject, SimpleChanges } from '@angular/core';
+import { GiftService } from '../../../services/gift/gift.service';
+import { GlobalService } from '../../../services/global/global.service';
+import { GiftWithOldPurchase } from '../../../models/gift';
+import { NzAvatarModule } from 'ng-zorro-antd/avatar';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { CardCart, CardCarts, Category, PackageCart, PaginatedResult } from '../../../models';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { CookieService } from 'ngx-cookie-service';
+import { FormsModule, NonNullableFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from "@angular/router";
+import { CommonModule } from '@angular/common';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzTransferModule } from 'ng-zorro-antd/transfer';
+import { NzSelectModule } from "ng-zorro-antd/select";
+import { NzOptionComponent } from "ng-zorro-antd/select";
+import { NzPaginationModule } from 'ng-zorro-antd/pagination';
+import { NzSwitchComponent } from "ng-zorro-antd/switch";
+import { NzMessageComponent, NzMessageService } from 'ng-zorro-antd/message';
+import { Router } from '@angular/router';
+import { CategoryService } from '../../../services/category/category.service';
+import { CartService } from '../../../services/cart/cart.service';
+import { Cart } from '../../cart/cart';
+
+
+@Component({
+  selector: 'app-gift',
+  imports: [
+    NzAvatarModule,
+    NzCardModule,
+    NzIconModule,
+    NzButtonModule,
+    NzTransferModule,
+    NzSelectModule,
+    RouterLink,
+    FormsModule,
+    NzInputModule,
+    CommonModule,
+    ReactiveFormsModule,
+    NzOptionComponent,
+    NzPaginationModule,
+    NzSwitchComponent
+  ],
+  providers:[Cart],
+  templateUrl: './gift.html',
+  styleUrl: './gift.scss',
+})
+
+export class Gift {
+  constructor(
+    public giftService: GiftService,
+    public global: GlobalService,
+    private cookieService: CookieService,
+    private msg: NzMessageService,
+    private router: Router,
+    private categoryService: CategoryService,
+    private cartService: CartService,
+    private cartComponent: Cart
+  ) { }
+
+  paginatedGifts: PaginatedResult<GiftWithOldPurchase[]> | null = null;
+  allGifts: GiftWithOldPurchase[] = [];
+  allCategories: Category[] = [];
+  admin: boolean = false;
+  cart: CardCarts[] = [];
+  isVisible: boolean = false;
+  pageNumber: number = 1;
+  pageSize: number = 3;
+  searchText: string = '';
+  filteredGifts: GiftWithOldPurchase[] = [];
+  searchType: 'name' | 'donor' = 'name';
+  placeholderText: 'חפש מתנה...' | 'חפש תורם...' = 'חפש מתנה...';
+  sortType: 'price' | 'category' | 'name' = 'price';
+  ascendingOrder: boolean = true;
+
+  selectedCategory: number | null = null;
+  canCollect: boolean = false;
+
+  private fb = inject(NonNullableFormBuilder)
+
+  onSearchChange(searchValue: string): void {
+    this.uploadData();
+  }
+
+  searchTypeChange(value: 'name' | 'donor'): void {
+    // console.log("searchTypeChange", value);
+    this.searchType = value;
+    this.onSearchChange(this.searchText);
+    if (value === 'name') {
+      this.placeholderText = 'חפש מתנה...';
+    } else {
+      this.placeholderText = 'חפש תורם...';
+    }
+  }
+
+  ngOnInit(): void {
+    const token = this.cookieService.get('authToken') || '';
+    this.validateForm.patchValue({
+      lotteryId: this.global.currentLotteryId()
+    });
+    this.cartService.initAvailableCards();
+    
+    // console.log(this.global.user());
+
+    // const userId = getClaim(token, 'sub') || getClaim(token, 'userId');
+    // this.cookieService.set('cardCart', [], 7);
+    this.uploadData();
+  }
+
+  edit(item: any): void {
+    // console.log("item", item);
+    this.router.navigate([`/gifts/edit/${item}`]);
+  }
+
+
+  validateForm = this.fb.group({
+    name: ['', [Validators.required]],
+    description: [''],
+    price: [0, [Validators.required, Validators.min(0)]],
+    giftValue: [0, [Validators.required, Validators.min(0)]],
+    imageUrl: [''],
+    isPackageAble: [false],
+    donorId: [0, [Validators.required, Validators.min(1)]],
+    categoryId: [0, [Validators.min(1)]],
+    lotteryId: [0, [Validators.required]],
+  });
+
+
+  uploadData(): void {
+    const current = this.global.currentLottery();
+    if (!current || (!current.startDate && !current.endDate)) {
+      this.canCollect = false;
+      this.global.lotteryStart = true;
+    } else {
+      const now = Date.now();
+      const start = current.startDate ? new Date(current.startDate).getTime() : now;
+      this.canCollect = now < start;
+      this.global.lotteryStart = !(now < start);
+    }
+
+    this.giftService.getGifts(this.global.currentLotteryId(), undefined, this.pageNumber, this.pageSize, this.searchText, this.searchType, this.sortType, this.ascendingOrder, this.selectedCategory).subscribe({
+      next: (gifts) => {
+        this.paginatedGifts = gifts;
+        this.allGifts = this.paginatedGifts.items.flat();
+        this.categoryService.getAllCategories().subscribe((categories) => {
+          this.allCategories = categories;
+        });
+      },
+      error: (err) => {
+        this.msg.error('שגיאה בטעינת המתנות');
+      }
+    });
+  }
+
+  onPageChange(page: number): void {
+    page = page || 1;
+    this.pageNumber = page;
+    this.uploadData();
+  }
+
+  onSortChange(type: 'name' | 'category' | 'price'): void {
+    // console.log("onSortChange", type);
+
+    this.sortType = type;
+    // console.log("onSortChange", this.sortType);
+    this.uploadData();
+  }
+
+  onSortOrderChange(ascending: boolean): void {
+    // console.log("onSortOrderChange", ascending);
+    this.ascendingOrder = ascending;
+    // console.log("onSortOrderChange", this.ascendingOrder);
+    this.uploadData();
+  }
+
+  private lotteryEffect = effect(() => {
+    this.uploadData();
+  });
+
+  onCategoryChange(selectedCategory: number | null): void {
+    this.selectedCategory = selectedCategory;
+    this.uploadData();
+  }
+
+  submitForm(): void {
+    // console.log('submit', this.validateForm.value);
+  }
+
+  ngOnChanges(c: SimpleChanges): void {
+    this.uploadData();
+  }
+  updateQuantity(gift: GiftWithOldPurchase, change: number): void {
+    
+    if (!this.global.lotteryStarted() || this.global.lotteryFinished()) {
+      return;
+    }
+    const user = this.global.user();
+    const userId = user?.id ?? 0;
+    const item: CardCart = {
+      giftId: gift.id,
+      quantity: change,
+      userId,
+      giftName: gift.name,
+      imageUrl: gift.imageUrl,
+      price: gift.price,
+      isPackageAble: gift.isPackageAble
+    };
+    if (change <= 0 && !gift.isPackageAble) {
+      this.giftService.updateCardQuantity(item, change);
+      return;
+    }
+    else if (this.cartService.availableCards <= 0) {
+      this.msg.error('הוסף חבילה לפני רכישת כרטיסים');
+      return;
+    }
+    else if(this.cartService.availableCards < this.cartComponent.getTotalTickets() + change) {
+      this.msg.error('לא ניתן להוסיף כרטיסים נוספים, כמות הכרטיסים הזמינה נגמרה');
+      return;
+    }
+      this.giftService.updateCardQuantity(item, change);
+      this.cartComponent.getProgressPercent();
+      return;
+  }
+}
+

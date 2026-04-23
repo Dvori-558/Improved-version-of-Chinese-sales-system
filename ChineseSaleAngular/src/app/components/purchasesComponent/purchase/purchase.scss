@@ -1,0 +1,195 @@
+:host {
+	display: block;
+	position: relative;
+	min-height: 100vh;
+	margin: 40px auto;
+	padding: 30px;
+	background: #ffffff;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	direction: rtl;
+}
+
+* {
+	direction: rtl;
+}
+
+.purchase-page {
+	position: relative;
+}
+
+.sort-group {
+	max-width: 900px;
+	margin: 0 auto 18px;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 0 0 auto;
+}
+
+.sort-group nz-input-group {
+	width: 200px;
+}
+
+.sort-select {
+	width: 100%;
+	border: none;
+}
+
+nz-select {
+	direction: ltr;
+}
+
+.switch-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 12px;
+	background: var(--brand-surface-soft);
+	border-radius: 16px;
+	transition: background 0.3s;
+}
+
+.switch-wrapper:hover {
+	background: var(--brand-border);
+}
+
+.switch-label {
+	font-size: 12px;
+	color: var(--brand-text-secondary);
+	min-width: 30px;
+	text-align: center;
+}
+
+.purchase-list {
+	max-width: 900px;
+	margin: 0 auto;
+	padding-bottom: 96px;
+}
+
+::ng-deep .purchase-list .ant-list-item {
+	background: #ffffff;
+	border: 1px solid var(--brand-border);
+	border-radius: 10px;
+	margin-bottom: 14px;
+	padding: 16px 20px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.purchase-item {
+	position: relative;
+}
+
+::ng-deep .purchase-list .ant-list-item-meta {
+	position: relative;
+	width: 100%;
+	padding: 0 260px;
+}
+
+::ng-deep .purchase-list .ant-list-item:hover {
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+	transform: translateY(-2px);
+}
+
+::ng-deep .purchase-list .ant-list-item-meta-avatar {
+	position: absolute;
+	right: 16px;
+	top: 50%;
+	transform: translateY(-50%);
+	margin-inline-end: 0;
+}
+
+::ng-deep .purchase-list .ant-list-item-meta-content {
+	text-align: center;
+}
+
+::ng-deep .purchase-list .ant-avatar {
+	width: 56px;
+	height: 56px;
+	border-radius: 12px;
+	border: 1px solid var(--brand-border);
+	object-fit: cover;
+}
+
+::ng-deep .purchase-list .ant-list-item-meta-title {
+	font-size: 18px;
+	font-weight: 600;
+	color: var(--brand-text-primary);
+	margin-bottom: 4px;
+}
+
+::ng-deep .purchase-list .ant-list-item-meta-description {
+	color: var(--brand-green-strong);
+	font-size: 15px;
+	font-weight: 500;
+}
+
+.purchase-name {
+	color: inherit;
+	text-decoration: none;
+}
+
+.purchase-name:hover {
+	color: var(--brand-green);
+}
+
+.purchase-side {
+	position: absolute;
+	left: 16px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 240px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	text-align: left;
+	direction: ltr;
+}
+
+.purchase-value,
+.purchase-extra {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.empty-message {
+	text-align: center;
+	font-size: 16px;
+	color: var(--brand-text-secondary);
+	padding: 24px 0;
+}
+
+.nz-pagination.sticky-pagination {
+	position: fixed;
+	bottom: 16px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 1100;
+	background: transparent;
+	padding: 4px 8px;
+	border-radius: 6px;
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+	direction: ltr;
+}
+
+@media (max-width: 768px) {
+	:host {
+		margin: 24px 12px;
+		padding: 20px;
+	}
+
+	.sort-group {
+		width: 100%;
+		justify-content: space-between;
+	}
+
+	.purchase-list {
+		padding-bottom: 112px;
+	}
+
+	::ng-deep .purchase-list .ant-list-item {
+		padding: 14px 16px;
+	}
+}

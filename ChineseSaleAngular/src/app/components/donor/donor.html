@@ -1,0 +1,83 @@
+<button class="add-donor-button" (click)="add()">
+    <nz-icon nzType="user-add" nzTheme="outline" />
+</button>
+<nz-input-group [nzSuffix]="suffixIconSearch" style="margin-bottom: 20px;">
+    <input type="text" nz-input placeholder={{placeholderText}} [(ngModel)]="searchText"
+        (ngModelChange)="onSearchChange($event)" />
+</nz-input-group>
+<ng-template #suffixIconSearch>
+    <nz-icon nzType="search" />
+    <nz-select [(ngModel)]="searchType" [ngModelOptions]="{standalone: true}"
+        (ngModelChange)="searchtypeChange($event)">
+        <nz-option nzValue="name" nzLabel="שם תורם"></nz-option>
+        <nz-option nzValue="email" nzLabel="אימייל תורם"></nz-option>
+    </nz-select>
+</ng-template>
+
+<nz-modal [(nzVisible)]="addModalVisible" [nzTitle]="'הוספת תורם להגרלה'" [nzFooter]="null"
+    (nzOnCancel)="closeAddModal()">
+    <ng-container *nzModalContent>
+        <nz-card nzTitle="הוספת תורם קיים" nzBordered="false">
+            <div class="donor-select">
+                <label>בחר תורם קיים</label>
+                <nz-select nzShowSearch nzPlaceHolder="בחר תורם" [(ngModel)]="selectedDonorId">
+                    @for (donor of allDonorsForAdd; track donor.id) {
+                    <nz-option [nzValue]="donor.id"
+                        [nzLabel]="(donor.firstName || '') + ' ' + (donor.lastName || '') + ' - ' + donor.companyName"></nz-option>
+                    }
+                </nz-select>
+            </div>
+            <div class="modal-actions">
+                <button nz-button (click)="closeAddModal()">סגור</button>
+                <button nz-button nzType="primary" [disabled]="!selectedDonorId"
+                    (click)="confirmAddDonor()">אישור</button>
+            </div>
+        </nz-card>
+        @if(!globalService.lotteryStarted()) {
+        <nz-card nzTitle="הוספת תורם חדש" nzBordered="false">
+            <button nz-button nzType="default" (click)="goToAddDonor()">הוסף תורם חדש</button>
+        </nz-card>
+        }
+    </ng-container>
+</nz-modal>
+
+<nz-list class="demo-loadmore-list" [nzLoading]="initLoading">
+    @for (donor of filteredDonors; track donor.id) {
+    <nz-list-item>
+        <ng-container>
+            <nz-list-item-meta nzAvatar="http://localhost:5025/images/{{donor.companyIcon}}"
+                nzDescription="{{ donor.companyName }}">
+                <nz-list-item-meta-title>
+                    <a class="donor-name" [routerLink]="['/donors', donor.id]">
+                        {{ donor.firstName }} {{ donor.lastName }}
+                    </a>
+                </nz-list-item-meta-title>
+            </nz-list-item-meta>
+
+            <ul nz-list-item-actions>
+                @if(!globalService.lotteryStarted()) {
+                <nz-list-item-action><a (click)="edit(donor)">
+                        <nz-icon nzType="edit" nzTheme="outline"></nz-icon>
+                    </a></nz-list-item-action>
+                <nz-list-item-action><a (click)="delete(donor.id)">
+                        <nz-icon nzType="delete" nzTheme="outline"></nz-icon>
+                    </a></nz-list-item-action>
+                }
+            </ul>
+        </ng-container>
+    </nz-list-item>
+    }
+    @if (filteredDonors.length === 0) {
+    <div class="empty-message">לא נמצאו תורמים</div>
+    }
+    <!-- @if(!globalService.lotteryStarted()) {
+    <button class="add-donor-button" nz-button nzType="primary" (click)="add()">
+        <span nz-icon nzType="user-add" nzTheme="outline"></span>
+        <span>הוסף תורם</span>
+    </button>
+    } -->
+
+    <nz-pagination class="nz-pagination sticky-pagination" [nzPageIndex]="pageNumber" [nzTotal]="data?.totalCount || 0"
+        [nzPageSize]="pageSize" (nzPageIndexChange)="uploadData($event)" />
+</nz-list>
+<router-outlet></router-outlet>

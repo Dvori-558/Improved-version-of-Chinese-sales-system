@@ -1,0 +1,224 @@
+<h2 class="page-title">מתנות
+    @if(!global.lotteryStart) {
+        <a nz-button nzType="primary" routerLink="add" class="add-button">
+            <span nz-icon nzType="plus"></span>
+            <span>הוסף מתנה</span>
+        </a>
+    }
+</h2>
+
+<div class="search-sort-container">
+    <!-- Search Section -->
+    <nz-input-group class="search-group" [nzPrefix]="prefixIconSearch">
+        <input type="text" nz-input placeholder="{{placeholderText}}" [(ngModel)]="searchText"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onSearchChange($event)" />
+    </nz-input-group>
+
+    <!-- Sort Section -->
+    <div class="sort-group">
+        <nz-input-group [nzPrefix]="prefixIconSort">
+            <nz-select class="sort-select" [(ngModel)]="sortType" [ngModelOptions]="{standalone: true}"
+                (ngModelChange)="onSortChange($event)" nzPlaceHolder="מיין לפי...">
+                <nz-option nzValue="name" nzLabel="שם"></nz-option>
+                <nz-option nzValue="category" nzLabel="קטגוריה"></nz-option>
+                <nz-option nzValue="price" nzLabel="מחיר"></nz-option>
+            </nz-select>
+        </nz-input-group>
+
+        <div class="switch-wrapper">
+            <span class="switch-label">{{ ascendingOrder ? 'עולה' : 'יורד' }}</span>
+            <nz-switch [(ngModel)]="ascendingOrder" [ngModelOptions]="{standalone: true}"
+                (ngModelChange)="onSortOrderChange($event)">
+            </nz-switch>
+        </div>
+    </div>
+</div>
+
+<ng-template #prefixIconSearch>
+    <span nz-icon nzType="search"></span>
+    <nz-select [(ngModel)]="searchType" (ngModelChange)="searchTypeChange($event)">
+        <nz-option nzValue="name" nzLabel="שם"></nz-option>
+        <nz-option nzValue="donor" nzLabel="תורם"></nz-option>
+    </nz-select>
+</ng-template>
+
+<ng-template #prefixIconSort>
+    @if(ascendingOrder) {
+    <span nz-icon nzType="sort-ascending"></span>
+    }
+    @else {
+    <span nz-icon nzType="sort-descending"></span>
+    }
+</ng-template>
+
+<!-- <nz-transfer nzShowSearch></nz-transfer> -->
+<div class="category-container">
+    <div class="category-grid">
+        <div class="category-square"
+            [ngClass]="{ 'selected': selectedCategory === null }"
+            (click)="onCategoryChange(null)">
+            {{'כל המתנות'}}
+        </div>
+        @for(category of allCategories; track category.id) {
+        <div class="category-square"
+            [ngClass]="{ 'selected': selectedCategory === category.id }"
+            (click)="onCategoryChange(category.id)">
+            {{category.name}}
+        </div>
+        }
+    </div>
+</div>
+
+<div class="gifts-grid">
+    <div class="page-description">
+        מתנות אלו לא ניתן לצרף לחבילה, אך ניתן לרכוש אותן בנפרד.
+    </div>
+    @for(gift of allGifts; track gift.id) {
+    @if(!gift.isPackageAble) {
+    <nz-card style="width:100%;" [nzCover]="coverTemplate" [nzExtra]="extraTemplate"
+        [nzActions]="[rightAction, middleAction, leftAction]">
+        <a routerLink="gift/{{gift.id}}">
+            <nz-card-meta nzTitle={{gift.name}} nzDescription=" שווי המתנה: ₪{{gift.giftValue}} "></nz-card-meta>
+            <div>עלות כרטיס: ₪{{gift.price}}</div>
+            <div>רכישות קודמות: {{gift.oldPurchaseCount}}</div>
+        </a>
+    </nz-card>
+    }
+
+    <ng-template #extraTemplate>
+        <div>{{gift.categoryName}}</div>
+    </ng-template>
+
+
+    <ng-template #coverTemplate>
+        <img alt="example" src="http://localhost:5025/images/{{gift.imageUrl}}" />
+    </ng-template>
+
+    <ng-template #rightAction>
+        @if(admin){
+            @if(!global.lotteryStarted()){
+        <nz-icon nzType="delete" nzTheme="outline" />
+        }}
+        @else {
+        @if(global.lotteryStarted() && !global.lotteryFinished()){
+        <nz-icon nzType="minus" nzTheme="outline" (click)="updateQuantity(gift, -1)"></nz-icon>
+        }
+        }
+    </ng-template>
+
+
+    <ng-template #middleAction>
+        @if(global.lotteryStarted() && !global.lotteryFinished()){
+        @if(!admin){
+        {{
+        giftService.getGiftQuantity(gift.id)
+        }}
+        }
+        }
+        @else{
+        @if(global.lotteryFinished()){
+        @if(gift.winner != " ") {
+        {{`הזוכה במתנה : ${gift.winner} ` }}
+        }
+        @else {
+        {{`מתנה זו עדיין לא הוגרלה`}}
+        }
+        }
+        @else {
+            @if(!admin) {
+        {{"עדיין לא ניתן לרכוש"}}
+            }
+        }
+        }
+    </ng-template>
+
+    <ng-template #leftAction>
+        @if(admin){
+        @if(!global.lotteryStarted()){
+            <nz-icon nzType="edit" (click)="edit(gift.id)"></nz-icon>
+        }}
+        @else {
+            @if(global.lotteryStarted() && !global.lotteryFinished()){
+        <nz-icon nzType="plus" nzTheme="outline" (click)="updateQuantity(gift, 1)"></nz-icon>
+        }
+        }
+    </ng-template>
+    }
+    <div class="page-description">
+        מתנות אלו ניתן לצרף לחבילה.
+    </div>
+    @for(gift of allGifts; track gift.id) {
+    @if(gift.isPackageAble)
+    {
+    <nz-card style="width:100%;" [nzExtra]="extraTemplate" [nzCover]="coverTemplate"
+        [nzActions]="[rightAction, middleAction, leftAction]">
+        <a routerLink="gift/{{gift.id}}">
+            <nz-card-meta nzTitle={{gift.name}} nzDescription=" שווי המתנה: ₪{{gift.giftValue}} "></nz-card-meta>
+            <div>רכישות קודמות: {{gift.oldPurchaseCount}}</div>
+        </a>
+    </nz-card>
+    }
+    <ng-template #extraTemplate>
+        <div>{{gift.categoryName}}</div>
+    </ng-template>
+
+
+    <ng-template #coverTemplate>
+        <img alt="example" src="http://localhost:5025/images/{{gift.imageUrl}}" />
+    </ng-template>
+
+
+  <ng-template #rightAction>
+        @if(admin){
+            @if(!global.lotteryStarted()){
+        <nz-icon nzType="delete" nzTheme="outline" />
+        }}
+        @else {
+        @if(global.lotteryStarted() && !global.lotteryFinished()){
+        <nz-icon nzType="minus" nzTheme="outline" (click)="updateQuantity(gift, -1)"></nz-icon>
+        }
+        }
+    </ng-template>
+
+
+    <ng-template #middleAction>
+        @if(global.lotteryStarted() && !global.lotteryFinished()){
+        @if(!admin){
+        {{
+        giftService.getGiftQuantity(gift.id)
+        }}
+        }
+        }
+        @else{
+        @if(global.lotteryFinished()){
+        @if(gift.winner != " ") {
+        {{`הזוכה במתנה : ${gift.winner} ` }}
+        }
+        @else {
+        {{`מתנה זו עדיין לא הוגרלה`}}
+        }
+        }
+        @else {
+            @if(!admin) {
+        {{"עדיין לא ניתן לרכוש"}}
+            }
+        }
+        }
+    </ng-template>
+
+    <ng-template #leftAction>
+        @if(admin){
+        @if(!global.lotteryStarted()){
+            <nz-icon nzType="edit" (click)="edit(gift.id)"></nz-icon>
+        }}
+        @else {
+            @if(global.lotteryStarted() && !global.lotteryFinished()){
+        <nz-icon nzType="plus" nzTheme="outline" (click)="updateQuantity(gift, 1)"></nz-icon>
+        }
+        }
+    </ng-template>
+
+    }
+</div>
+<nz-pagination class="nz-pagination sticky-pagination" [nzPageIndex]="pageNumber"
+    [nzTotal]="paginatedGifts?.totalCount || 0" [nzPageSize]="pageSize" (nzPageIndexChange)="onPageChange($event)" />
