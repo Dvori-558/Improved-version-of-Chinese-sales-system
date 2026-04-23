@@ -3,6 +3,7 @@ using ChineseSaleApi.Dto;
 using ChineseSaleApi.Models;
 using ChineseSaleApi.RepositoryInterfaces;
 using ChineseSaleApi.ServiceInterfaces;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using System;
@@ -10,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Text.Json;
 
 namespace ChineseSaleApi.Services
 {
@@ -20,14 +22,16 @@ namespace ChineseSaleApi.Services
         private readonly ILotteryRepository _lotteryRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<GiftService> _logger;
+        private readonly IDistributedCache _cache;
 
-        public GiftService(ICardRepository cardRepository, IGiftRepository repository, ILotteryRepository lotteryRepository, IMapper mapper, ILogger<GiftService> logger)
+        public GiftService(ICardRepository cardRepository, IGiftRepository repository, ILotteryRepository lotteryRepository, IMapper mapper, ILogger<GiftService> logger, IDistributedCache cache)
         {
             _repository = repository;
             _cardRepository = cardRepository;
             _lotteryRepository = lotteryRepository;
             _mapper = mapper;
             _logger = logger;
+            _cache = cache;
         }
         //create
         public async Task<int> AddGift(CreateGiftDto createGiftDto)
@@ -59,6 +63,13 @@ namespace ChineseSaleApi.Services
         //read
         public async Task<GiftDto?> GetGiftById(int id)
         {
+            var cacheKey = $"gift:{id}";
+            var cachedData = await _cache.GetStringAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedData))
+            {
+                return JsonSerializer.Deserialize<GiftDto>(cachedData);
+            }
+
             try
             {
                 var gift = await _repository.GetGiftById(id);
@@ -70,6 +81,13 @@ namespace ChineseSaleApi.Services
                 var winner = tmp.FirstOrDefault(x => x.GiftId == gift.Id);
                 var giftDto = _mapper.Map<GiftDto>(gift);
                 giftDto.winner = winner?.User?.FirstName + " " + winner?.User?.LastName;
+
+                var serialized = JsonSerializer.Serialize(giftDto);
+                await _cache.SetStringAsync(cacheKey, serialized, new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+                });
+
                 return giftDto;
             }
             catch (Exception ex)
