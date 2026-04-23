@@ -153,6 +153,11 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379,password=mypassword";
+});
+
 var app = builder.Build();
 
 // Use custom error handling middleware
