@@ -102,6 +102,8 @@ builder.Services.Configure<EmailSettingsDto>(builder.Configuration.GetSection("E
 builder.Services.AddScoped<IEmailService,EmailService>();
 //builder.Services.AddTransient<EmailService>(); // Register your EmailService for injection
 
+builder.Services.Configure<ChineseSaleApi.Dto.CacheSettingsDto>(builder.Configuration.GetSection("CacheSettings"));
+
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
