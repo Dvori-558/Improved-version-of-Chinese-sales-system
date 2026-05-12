@@ -54,7 +54,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Addresses");
+                    b.ToTable("Addresses", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.Card", b =>
@@ -80,7 +80,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Cards");
+                    b.ToTable("Cards", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.CardCart", b =>
@@ -106,7 +106,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CardCarts");
+                    b.ToTable("CardCarts", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.Category", b =>
@@ -124,7 +124,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.Donor", b =>
@@ -167,7 +167,7 @@ namespace ChineseSaleApi.Migrations
                     b.HasIndex("CompanyAddressId")
                         .IsUnique();
 
-                    b.ToTable("Donors");
+                    b.ToTable("Donors", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.Gift", b =>
@@ -217,7 +217,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasIndex("LotteryId");
 
-                    b.ToTable("Gifts");
+                    b.ToTable("Gifts", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.Lottery", b =>
@@ -250,7 +250,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Lotteries");
+                    b.ToTable("Lotteries", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.Package", b =>
@@ -287,7 +287,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasIndex("LotteryId");
 
-                    b.ToTable("Packages");
+                    b.ToTable("Packages", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.PackageCart", b =>
@@ -313,7 +313,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PackageCarts");
+                    b.ToTable("PackageCarts", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.User", b =>
@@ -367,7 +367,7 @@ namespace ChineseSaleApi.Migrations
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("DonorLottery", b =>
@@ -382,7 +382,7 @@ namespace ChineseSaleApi.Migrations
 
                     b.HasIndex("LotteriesId");
 
-                    b.ToTable("DonorLottery");
+                    b.ToTable("DonorLottery", (string)null);
                 });
 
             modelBuilder.Entity("ChineseSaleApi.Models.Card", b =>
