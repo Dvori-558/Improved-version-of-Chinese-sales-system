@@ -3,6 +3,27 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
-    command: redis-server --requirepass mypassword
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     environment:
-      - REDIS_PASSWORD=mypassword
+      REDIS_PASSWORD: mypassword
+    networks:
+      - app-network
+
+  api:
+    build:
+      context: ./ChineseSaleApi/ChineseSaleApi
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      ConnectionStrings__Redis: "redis:6379,password=mypassword"
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

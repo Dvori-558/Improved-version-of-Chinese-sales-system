@@ -5,6 +5,7 @@ using ChineseSaleApi.RepositoryInterfaces;
 using ChineseSaleApi.ServiceInterfaces;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Serilog;
 using System;
 using System.Linq;
@@ -23,8 +24,9 @@ namespace ChineseSaleApi.Services
         private readonly IMapper _mapper;
         private readonly ILogger<GiftService> _logger;
         private readonly IDistributedCache _cache;
+        private readonly int _cacheTtlSeconds;
 
-        public GiftService(ICardRepository cardRepository, IGiftRepository repository, ILotteryRepository lotteryRepository, IMapper mapper, ILogger<GiftService> logger, IDistributedCache cache)
+        public GiftService(ICardRepository cardRepository, IGiftRepository repository, ILotteryRepository lotteryRepository, IMapper mapper, ILogger<GiftService> logger, IDistributedCache cache, IOptions<CacheSettingsDto> cacheSettings)
         {
             _repository = repository;
             _cardRepository = cardRepository;
@@ -32,6 +34,7 @@ namespace ChineseSaleApi.Services
             _mapper = mapper;
             _logger = logger;
             _cache = cache;
+            _cacheTtlSeconds = cacheSettings?.Value.DefaultTTLSeconds > 0 ? cacheSettings.Value.DefaultTTLSeconds : 30;
         }
         //create
         public async Task<int> AddGift(CreateGiftDto createGiftDto)
@@ -85,7 +88,7 @@ namespace ChineseSaleApi.Services
                 var serialized = JsonSerializer.Serialize(giftDto);
                 await _cache.SetStringAsync(cacheKey, serialized, new DistributedCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(_cacheTtlSeconds)
                 });
 
                 return giftDto;
@@ -232,6 +235,7 @@ namespace ChineseSaleApi.Services
 
                     _mapper.Map(updateGiftDto, gift);
                     await _repository.UpdateGift(gift);
+                    await _cache.RemoveAsync($"gift:{gift.Id}");
                     return true;
                 }
                 return null;
@@ -257,6 +261,7 @@ namespace ChineseSaleApi.Services
                 if (lottery?.StartDate < DateTime.Now)
                     throw new ArgumentException("Gifts cannot be deleted after the raffle has started.", nameof(id));
                 await _repository.DeleteGift(id);
+                await _cache.RemoveAsync($"gift:{id}");
             }
             catch (ArgumentException ex)
             {
