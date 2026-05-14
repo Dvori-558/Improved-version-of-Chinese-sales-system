@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ChineseSaleApi.ServiceInterfaces;
 using ChineseSaleApi.Dto;
 using Microsoft.Extensions.Logging;
@@ -6,6 +7,7 @@ using System;
 
 namespace ChineseSaleApi.Controllers
 {
+    [EnableRateLimiting("sliding")]
     [ApiController]
     [Route("api/[controller]")]
 
