@@ -5,12 +5,14 @@ using ChineseSaleApi.ServiceInterfaces;
 using ChineseSaleApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using StoreApi.DTOs;
 using System;
 
 namespace ChineseSaleApi.Controllers
 {
+    [EnableRateLimiting("sliding")]
     [ApiController]
     [Route("api/[controller]")]
     public class UserController : ControllerBase
@@ -34,7 +36,14 @@ namespace ChineseSaleApi.Controllers
                 {
                     return Unauthorized();
                 }
-                return Ok(user);
+                Response.Cookies.Append("jwt", user.Token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false, // for development
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddMinutes(user.ExpiresIn)
+                });
+                return Ok(user.User);
             }
             catch (ArgumentException ex)
             {
@@ -46,6 +55,13 @@ namespace ChineseSaleApi.Controllers
                 _logger.LogError(ex, "Authentication failed for user {Username}.", loginDto?.UserName);
                 throw;
             }
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("jwt");
+            return Ok(new { message = "Logged out successfully" });
         }
 
         //read

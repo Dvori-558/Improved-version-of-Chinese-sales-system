@@ -5,6 +5,7 @@ using ChineseSaleApi.ServiceInterfaces;
 using ChineseSaleApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -21,6 +22,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddSlidingWindowLimiter("sliding", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.SegmentsPerWindow = 6;
+        opt.PermitLimit = 10;
+    });
+});
 builder.Services.AddAutoMapper(typeof(Program));
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -168,6 +178,8 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 // ����� CORS
 app.UseCors("AllowAllOrigins");
 
+app.UseRateLimiter();
+
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
     {
@@ -177,6 +189,15 @@ app.UseCors("AllowAllOrigins");
 
     app.UseHttpsRedirection();
     app.UseStaticFiles();
+
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Cookies.TryGetValue("jwt", out var token))
+        {
+            context.Request.Headers["Authorization"] = "Bearer " + token;
+        }
+        await next();
+    });
 
     app.UseAuthentication();
     app.UseAuthorization();
