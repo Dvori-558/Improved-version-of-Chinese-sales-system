@@ -6,6 +6,7 @@ using ChineseSaleApi.Dto;
 using ChineseSaleApi.Models;
 using ChineseSaleApi.RepositoryInterfaces;
 using ChineseSaleApi.ServiceInterfaces;
+using ChineseSaleApi.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ChineseSaleApi.Services
@@ -18,6 +19,7 @@ namespace ChineseSaleApi.Services
         private readonly IGiftRepository _giftRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<LotteryService> _logger;
+        private readonly IKafkaProducerService _kafkaProducer;
 
         public LotteryService
             (
@@ -26,7 +28,8 @@ namespace ChineseSaleApi.Services
             IUserRepository userRepository,
             IGiftRepository giftRepository,
             IMapper mapper,
-            ILogger<LotteryService> logger
+            ILogger<LotteryService> logger,
+            IKafkaProducerService kafkaProducer
             )
         {
             _repository = repository;
@@ -35,6 +38,7 @@ namespace ChineseSaleApi.Services
             _giftRepository = giftRepository;
             _mapper = mapper;
             _logger = logger;
+            _kafkaProducer = kafkaProducer;
         }
         //create
         public async Task AddLottery(CreateLotteryDto lotteryDto)
@@ -268,6 +272,19 @@ namespace ChineseSaleApi.Services
                     throw new KeyNotFoundException("Winner user not found.");
                 }
                 await UpdateWin(cardsList[winnerCardNumber - 1]);
+                
+                // Send Kafka event for lottery winner
+                await _kafkaProducer.SendMessageAsync("lottery-winner", new
+                {
+                    EventType = "LotteryWinner",
+                    GiftId = giftId,
+                    WinnerUserId = winnerUser.Id,
+                    WinnerName = $"{winnerUser.FirstName} {winnerUser.LastName}",
+                    CardId = cardsList[winnerCardNumber - 1]?.Id,
+                    TotalParticipants = cardsList.Count,
+                    Timestamp = DateTime.UtcNow
+                });
+
                 return _mapper.Map<UserDto>(winnerUser);
             }
             catch (KeyNotFoundException ex)

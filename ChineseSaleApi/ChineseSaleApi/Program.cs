@@ -101,6 +101,7 @@ builder.Services.AddScoped<IPackageCartService, PackageCartService>();
 builder.Services.AddScoped<IDonorService, DonorService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 
 // Export Services
 builder.Services.AddScoped<ChineseSaleApi.Services.Exporters.CsvExporter>();
@@ -159,9 +160,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAllOrigins",
         builder =>
         {
-            builder.AllowAnyOrigin()
+            builder.WithOrigins("http://localhost:4200")
                    .AllowAnyMethod()
-                   .AllowAnyHeader();
+                   .AllowAnyHeader()
+                   .AllowCredentials();
         });
 });
 
@@ -187,7 +189,10 @@ app.UseRateLimiter();
         app.UseSwaggerUI();
     }
 
-    app.UseHttpsRedirection();
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseStaticFiles();
 
     app.Use(async (context, next) =>

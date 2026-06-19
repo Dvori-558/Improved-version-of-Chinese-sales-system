@@ -17,12 +17,14 @@ namespace ChineseSaleApi.Services
         private readonly ICardRepository _repository;
         private readonly IMapper _mapper;
         private readonly ILogger<CardService> _logger;
-        public CardService(ICardRepository repository, ILogger<CardService> logger, IGiftRepository giftRepository, IMapper mapper)
+        private readonly IKafkaProducerService _kafkaProducer;
+        public CardService(ICardRepository repository, ILogger<CardService> logger, IGiftRepository giftRepository, IMapper mapper, IKafkaProducerService kafkaProducer)
         {
             _repository = repository;
             _logger = logger;
             _giftRepository = giftRepository;
             _mapper = mapper;
+            _kafkaProducer = kafkaProducer;
         }
         //create
         public async Task<int> AddCard(CreateCardDto createCardDto)
@@ -34,7 +36,19 @@ namespace ChineseSaleApi.Services
                     UserId = createCardDto.UserId,
                     GiftId = createCardDto.GiftId,
                 };
-                return await _repository.AddCard(card);
+                var cardId = await _repository.AddCard(card);
+
+                // Send Kafka event for new order
+                await _kafkaProducer.SendMessageAsync("order-created", new
+                {
+                    EventType = "OrderCreated",
+                    CardId = cardId,
+                    UserId = createCardDto.UserId,
+                    GiftId = createCardDto.GiftId,
+                    Timestamp = DateTime.UtcNow
+                });
+
+                return cardId;
             }
             catch (ArgumentNullException ex)
             {

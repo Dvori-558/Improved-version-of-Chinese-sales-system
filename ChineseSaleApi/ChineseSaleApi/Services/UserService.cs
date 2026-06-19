@@ -10,7 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StoreApi.DTOs;
-
+ 
 namespace ChineseSaleApi.Services
 {
     public class UserService : IUserService
@@ -22,7 +22,7 @@ namespace ChineseSaleApi.Services
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
         private readonly ILogger<UserService> _logger;
-
+ 
         public UserService(
             IEmailService emailService,
             IUserRepository repository,
@@ -41,7 +41,7 @@ namespace ChineseSaleApi.Services
             _mapper = mapper;
             _logger = logger;
         }
-
+ 
         // create
         public async Task AddUser(CreateUserDto createUserDto)
         {
@@ -51,12 +51,12 @@ namespace ChineseSaleApi.Services
                 {
                     throw new ArgumentException("Username already exists", nameof(createUserDto.Username));
                 }
-
+ 
                 int idAddress = await _addressService.AddAddressForUser(createUserDto.Address);
                 User user = _mapper.Map<User>(createUserDto);
                 user.Password = HashPassword(createUserDto.Password);
                 user.AddressId = idAddress;
-
+ 
                 //send welcome email(synchronous method in your EmailService)
                    _emailService.SendEmail(new EmailRequestDto()
                 {
@@ -64,7 +64,7 @@ namespace ChineseSaleApi.Services
                     Subject = "ברוכים הבאים ל‑Chinese Sale — הרשמתך להגרלה",
                     Body = BuildWelcomeHtml(createUserDto.FirstName)
                 });
-
+ 
                 await _repository.AddUser(user);
             }
             catch (ArgumentException ex)
@@ -78,7 +78,7 @@ namespace ChineseSaleApi.Services
                 throw;
             }
         }
-
+ 
         // read one
         public async Task<UserDto?> GetUserById(int id)
         {
@@ -89,7 +89,7 @@ namespace ChineseSaleApi.Services
                 {
                     return null;
                 }
-
+ 
                 return _mapper.Map<UserDto>(user);
             }
             catch (Exception ex)
@@ -98,7 +98,7 @@ namespace ChineseSaleApi.Services
                 throw;
             }
         }
-
+ 
         // read all
         public async Task<List<UserDto>> GetAllUsers()
         {
@@ -113,7 +113,7 @@ namespace ChineseSaleApi.Services
                 throw;
             }
         }
-
+ 
           public async Task<int> GetUserCount()
           {
             try
@@ -126,27 +126,27 @@ namespace ChineseSaleApi.Services
               throw;
             }
           }
-
+ 
         public async Task<bool> IsUserNameExists(string userName)
         {
             return await _repository.IsUserNameExists(userName);
         }
-
+ 
         public async Task<bool> IsEmailExists(string email)
         {
             return await _repository.IsEmailExists(email);
         }
-
-
+ 
+ 
         // pagination
         public async Task<PaginatedResultDto<UserDto>> GetUserWithPagination(PaginationParamsDto paginationParams)
         {
             try
             {
                 var (items, totalCount) = await _repository.GetUsersWithPagination(paginationParams.PageNumber, paginationParams.PageSize);
-
+ 
                 List<UserDto> userDtos = items.Select(user => _mapper.Map<UserDto>(user)).ToList();
-
+ 
                 return new PaginatedResultDto<UserDto>
                 {
                     Items = userDtos,
@@ -161,7 +161,7 @@ namespace ChineseSaleApi.Services
                 throw;
             }
         }
-
+ 
         // update
         public async Task<bool?> UpdateUser(UpdateUserDto userDto)
         {
@@ -172,12 +172,12 @@ namespace ChineseSaleApi.Services
                 {
                     return null;
                 }
-
+ 
                 if (userDto.Address != null)
                 {
                     await _addressService.UpdateAddress(userDto.Address);
                 }
-
+ 
                 if (!string.IsNullOrWhiteSpace(userDto.Email) && userDto.Email != user.Email)
                 {
                     var allUsers = await _repository.GetAllUsers();
@@ -186,9 +186,9 @@ namespace ChineseSaleApi.Services
                         throw new ArgumentException("Email already exists", nameof(userDto.Email));
                     }
                 }
-
+ 
                 _mapper.Map(userDto, user);
-
+ 
                 await _repository.UpdateUser(user);
                 return true;
             }
@@ -203,7 +203,7 @@ namespace ChineseSaleApi.Services
                 throw;
             }
         }
-
+ 
         // authenticate
         public async Task<LoginResponseDto?> AuthenticateAsync(LoginRequestDto loginRequest)
         {
@@ -214,26 +214,33 @@ namespace ChineseSaleApi.Services
                 {
                     return null;
                 }
-
+ 
                 var hashedPassword = HashPassword(loginRequest.Password);
                 if (user.Password != hashedPassword)
                 {
                     return null;
                 }
-
+ 
                 var token = _tokenService.GenerateToken(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin);
                 var expiryMinutes = _configuration.GetValue<int>("JwtSettings:ExpiryMinutes", 60);
-
-                // send login notification
-                _emailService.SendEmail(new EmailRequestDto()
+ 
+                // send login notification (non-blocking, don't fail login if email fails)
+                try
                 {
-                    To = user.Email,
-                    Subject = "התראת כניסה — Chinese Sale",
-                    Body = BuildLoginNotificationHtml(user.FirstName, DateTime.UtcNow)
-                });
-
+                    _emailService.SendEmail(new EmailRequestDto()
+                    {
+                        To = user.Email,
+                        Subject = "התראת כניסה — Chinese Sale",
+                        Body = BuildLoginNotificationHtml(user.FirstName, DateTime.UtcNow)
+                    });
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogWarning(emailEx, "Failed to send login notification email to {Email}.", user.Email);
+                }
+ 
                 _logger.LogInformation($"User {user.UserName} logged in successfully.");
-
+ 
                 return new LoginResponseDto
                 {
                   Token = token,
@@ -248,12 +255,12 @@ namespace ChineseSaleApi.Services
                 throw;
             }
         }
-
+ 
         private static string HashPassword(string password)
         {
             return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(password));
         }
-
+ 
         private static string BuildLoginNotificationHtml(string firstName, DateTime loginTimeUtc)
         {
             var loginTimeLocal = loginTimeUtc.ToLocalTime().ToString("f");
@@ -276,13 +283,13 @@ namespace ChineseSaleApi.Services
         <td style=""padding:28px 30px;"">
           <p style=""margin:0 0 12px;font-size:16px;color:#111;"">שלום {firstName},</p>
           <p style=""margin:0 0 16px;font-size:14px;color:#333;line-height:1.6;"">זוהתה כניסה חדשה לחשבונך בתאריך: <strong>{loginTimeLocal}</strong>.</p>
-
+ 
           <p style=""margin:0 0 18px;font-size:14px;color:#333;"">אם זו פעולה שלא בוצעה על ידך — אנא שנה את הסיסמה באופן מיידי ופנה לתמיכה.</p>
-
+ 
           <p style=""margin:0 0 18px;"">
             <a href=""#"" style=""display:inline-block;padding:12px 20px;background:#b8873e;color:#fff;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;"">אבטח את החשבון</a>
           </p>
-
+ 
           <p style=""margin:18px 0 0;font-size:13px;color:#6b655f;"">בברכה,<br/><strong>צוות Chinese Sale</strong></p>
         </td>
       </tr>
@@ -295,7 +302,7 @@ namespace ChineseSaleApi.Services
   </body>
 </html>";
         }
-
+ 
         private static string BuildWelcomeHtml(string firstName)
         {
             return $@"<!doctype html>
@@ -316,20 +323,20 @@ namespace ChineseSaleApi.Services
       <tr>
         <td style=""padding:30px 34px;"">
           <p style=""margin:0 0 14px;font-size:16px;color:#111;"">שלום {firstName},</p>
-
+ 
           <p style=""margin:0 0 16px;font-size:14px;color:#333;line-height:1.6;"">
             תודה על הרשמתך. חשבונך מוכן להשתתפות בהגרלות הסיניות היוקרתיות שאנו מארגנים — הזדמנויות לזכייה במבחר פרסים נבחרים.
           </p>
-
+ 
           <p style=""margin:0 0 18px;font-size:14px;color:#333;"">
             תוכלו להתחיל בכמה לחיצות: בדוק/י את דף ההגרלות, רכש/י כרטיס והמתן להודעה על מועד ההגרלה.
           </p>
-
+ 
           <p style=""margin:0 0 18px;"">
             <a href=""#"" style=""display:inline-block;padding:12px 20px;background:#c59d5f;color:#fff;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;"">עבור להגרלות</a>
             <a href=""#"" style=""display:inline-block;margin-right:10px;padding:12px 20px;background:#f3efe2;color:#3b2f20;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;border:1px solid #ead6a7;"">החשבון שלי</a>
           </p>
-
+ 
           <p style=""margin:22px 0 0;font-size:13px;color:#6b6156;"">אנו מאחלים בהצלחה ובהנאה — צוות Chinese Sale</p>
         </td>
       </tr>
@@ -344,3 +351,5 @@ namespace ChineseSaleApi.Services
         }
     }
 }
+ 
+ 

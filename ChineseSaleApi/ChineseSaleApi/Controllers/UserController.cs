@@ -43,7 +43,7 @@ namespace ChineseSaleApi.Controllers
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddMinutes(user.ExpiresIn)
                 });
-                return Ok(user.User);
+                return Ok(new { user = user.User, token = user.Token, expiresIn = user.ExpiresIn });
             }
             catch (ArgumentException ex)
             {
