@@ -83,7 +83,12 @@ namespace ChineseSaleApi.Services
                 var tmp = await _cardRepository.GetWinnerCards(gift.LotteryId);
                 var winner = tmp.FirstOrDefault(x => x.GiftId == gift.Id);
                 var giftDto = _mapper.Map<GiftDto>(gift);
-                giftDto.winner = winner?.User?.FirstName + " " + winner?.User?.LastName;
+                
+                // Safely handle null winner when formatting display name
+                if (winner?.User != null)
+                {
+                    giftDto.winner = winner.User.FirstName + " " + winner.User.LastName;
+                }
 
                 var serialized = JsonSerializer.Serialize(giftDto);
                 await _cache.SetStringAsync(cacheKey, serialized, new DistributedCacheEntryOptions
